@@ -44,8 +44,8 @@ Output is 26 + (p 15), (e 4), (d 3), (r 17) (o 14) + 26
 
 
 doc = docs[0]
-tokens = [BOS] + [uchars.index(word) for word in doc] + [BOS]
-print(doc)
+tokens = [BOS] + [uchars.index(word) for word in 'pedro'] + [BOS]
+print('pedro')
 print(tokens)
 
 print('-----------------------------\n')
@@ -64,3 +64,41 @@ def decode(tokens):
 
 
 print('decoded:', decode(tokens))
+
+
+"""
+Autograd
+"""
+class Value:
+    __slots__ = ('data', 'grad', '_children', '_local_grads')
+    
+    def __init__(self, data, children= (), local_grads=()):
+        self.data = data
+        self.grad = 0
+        self._children = children
+        self._local_grads = local_grads
+        
+    
+    def __add__(self, other):
+        print('>>> __add__ was called')
+        other = other if  isinstance(other, Value) else Value(other)
+        return Value(self.data + other.data, (self, other), (1, 1))
+    
+    def __mul__(self, other):
+        print('>>> __mul__ was called')
+        other = other if isinstance(other, Value) else Value(other)
+        return Value (self.data * other.data, (self, other), (1,1))
+    
+
+
+
+a = Value(3.0)
+b = Value(5.0)
+f = Value(2.0)
+
+c = b + a + f
+
+print(a.data)
+print(b.data)
+print(c.data)
+# print(c._children[0].data, c._children[1].data, c._children[2].data)  
