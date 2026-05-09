@@ -87,12 +87,64 @@ class Value:
     def __mul__(self, other):
         print('>>> __mul__ was called')
         other = other if isinstance(other, Value) else Value(other)
-        return Value (self.data * other.data, (self, other), (1,1))
+        return Value ( (self.data * other.data), (self, other), (other.data, self.data))
     
+    def __pow__(self, other):
+        return Value(self.data ** other, (self, ), (other * self.data**(other-1)) )
+
+    def log(self):
+        return Value(math.log(self.data), (self,), (1/self.data))
+    
+    def exp(self):
+        return Value(math.exp(self.data), (self), self(math.exp(self.data)))
+
+    def relu(self):
+        return Value(max(0, self.data), (self,), (float(self.data > 0)))
+
+    def __neg__(self):
+        return self * -1
+    
+    def __radd__(self, other):
+        return self + other
+    
+    
+    def __rsub__(self, other):
+        return other + (-self)
+    
+    def __rmul__(self, other):
+        return self * (other)
+    
+    def __truediv__(self, other):
+        return self * other**-1
+    
+    def __rtruediv__(self, other):
+        return other * self **-1
+    
+    def backward(self):
+        topo = []
+        
+        visited = set()
+        def build_topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._children:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
+        
+        self.grad = 1
+        
+        for v in reversed(topo):
+            for child, local_grad in zip(v._children, v._local_grads):
+                print(child.data, local_grad )
+                child.grad += local_grad * v.grad
+                
 
 
-
+    
+    
 a = Value(3.0)
+
 b = Value(5.0)
 f = Value(2.0)
 
@@ -101,4 +153,6 @@ c = b + a + f
 print(a.data)
 print(b.data)
 print(c.data)
+c.backward()
+
 # print(c._children[0].data, c._children[1].data, c._children[2].data)  
