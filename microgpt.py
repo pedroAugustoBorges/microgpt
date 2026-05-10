@@ -2,6 +2,8 @@ import os
 import random
 import urllib.request
 import math
+from anytree import Node, RenderTree
+
 
 random.seed(42)
 
@@ -25,9 +27,9 @@ print("uchars:", uchars)
 print('-----------------------------\n')
 
 BOS = len(uchars)
-voc_size = len(uchars) + 1
+vocab_size = len(uchars) + 1
 print("BOS:", BOS)
-print("voc_size:", voc_size)
+print("voc_size:", vocab_size)
 print("possible and valid ids:", (0, len(uchars) - 1))
 print("special id:", BOS)
 
@@ -64,6 +66,7 @@ def decode(tokens):
 
 
 print('decoded:', decode(tokens))
+
 
 
 """
@@ -138,7 +141,7 @@ class Value:
             for child, local_grad in zip(v._children, v._local_grads):
                 print(child.data, local_grad )
                 child.grad += local_grad * v.grad
-                
+
 
 
     
@@ -149,10 +152,48 @@ b = Value(5.0)
 f = Value(2.0)
 
 c = b + a + f
-
 print(a.data)
 print(b.data)
 print(c.data)
 c.backward()
 
-# print(c._children[0].data, c._children[1].data, c._children[2].data)  
+
+#Initialize the parameters, to store the knowledge of the model
+
+n_layer = 1
+n_emb = 16
+block_size = 16
+n_head = 4
+head_dim = n_emb // n_head
+matrix = lambda nout, nin, std = 0.08 : [[Value(random.gauss(0, std)) for _ in range(nin)] for _ in range(nout)]
+state_dict = {'wte' : matrix(vocab_size, n_emb), 'wpe' : matrix(block_size, n_emb), 'lm_head' : matrix(vocab_size, n_emb)  }
+
+
+for x in matrix(vocab_size, n_emb):
+    for y in x:
+        print(y.data)
+
+for i in range(n_layer):
+    state_dict[f'layer{i}.attn_wq'] = matrix(n_emb, n_emb)
+    state_dict[f'layer{i}.attn_wk'] = matrix(n_emb, n_emb)
+    state_dict[f'layer{i}.attn_wv'] = matrix(n_emb, n_emb)
+    state_dict[f'layer{i}.attn_wo'] = matrix(n_emb, n_emb)
+    state_dict[f'layer{i}.mlp_fc1'] = matrix(4 * n_emb, n_emb)
+    state_dict[f'layer{i}.mlp_fc2'] = matrix(n_emb, 4 * n_emb)
+
+
+print(state_dict.keys())
+
+
+def print_vector(name, vec):
+    print(f"\n{name}")
+    print("-" * 40)
+
+    for l in vec:
+        print(f' {len(l)})- {len(vec)}')
+        for i, v in enumerate(l):
+            print(f"layer {name} - {i:02d}: data={v.data:.4f} grad={v.grad:.4f}")
+        
+print_vector('attn_wq', state_dict['layer0.attn_wq'])    
+params = [p for mat in state_dict.values() for row in mat for p in row]
+print(f"num params: {len(params)}")
